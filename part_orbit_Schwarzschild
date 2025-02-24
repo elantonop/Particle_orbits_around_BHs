@@ -1,0 +1,51 @@
+M = 1; l = 2; e = Sqrt [1.3]; R = 20; acc = 1000;
+
+vsquared[r_] = (1 - 2*M/r)*(1 + l^2/r^2);
+reh = 2*M;
+
+If[l^2 >= 12*M^2,
+  vmax = First[FindMaximum[vsquared[r], {r, reh + 0.1}]];
+  rmax = r /. Last[FindMaximum[vsquared[r], {r, reh + 0.1}]] , vmax = 0];
+vmax
+
+If[e^2 >= vmax , rmin = reh + 0.01; rlim = rmin , sol = NSolve [{e^2 == vsquared[r] && r >= reh}, r, Reals ];
+  rmin = r /. sol [[2]]; rlim = rmin - 1];
+rmin
+
+ur[r_] = ((r - reh)* Sqrt[(e^2 - 1)*r^3 + 2*M*r^2 - l^2*r + 2*M*l^2])/ (e*r^(5/2));
+
+uphi[r_] = (l*(r - reh ))/(e*r^2);
+ksi[r_] = ArcTan[uphi[r]/ur[r]];
+
+intfun[u_] = Sqrt[l^2/(2*M*l^2*u^3 - l^2*u^2 + 2*M*u + e^2 - 1)];
+
+phi[k_] = ksi[R] + NIntegrate[intfun[u], {u, 1/R, 1/k}, Method -> "OscillatorySelection", MaxRecursion -> 100];
+
+phiout[k_] = -phi[k] + 2*phi[rmin];
+
+Off[NIntegrate ::nlim];
+
+x[k_] = k*Cos[phi[k]];
+y[k_] = k*Sin[phi[k]];
+xout[k_] = k*Cos[phiout[k]];
+yout[k_] = k*Sin[phiout[k]];
+xcirc[k_ , theta_] = k*Cos[theta ];
+ycirc[k_ , theta_] = k*Sin[theta ];
+
+line1 = Graphics [{Black , Dashed , Line [{{rmin , 0}, {rmin , 17}}]}];
+
+plot1 = Plot[vsquared[r], {r, 0, R}, PlotStyle -> Purple , PlotRange -> {Automatic , {0, vmax + 0.5}}];
+
+plot2 = Plot[phi[k], {k, rmin , R}, PlotStyle -> {Thickness[Large], Purple}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["r [km]", Black , FontSize -> 20], Style["ϕ [radians]", Black , FontSize -> 20]}, PlotRange -> Full];
+
+plot3 = ParametricPlot [{x[k], y[k]}, {k, rmin , R}, PlotStyle -> {Thickness[Large], Purple}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20],
+AxesLabel -> {Style["x [km]", Black , FontSize -> 20], Style["y [km]", Black , FontSize -> 20]}, PlotPoints -> acc];
+
+plot5 = Plot [{phi[k], phiout[k]}, {k, rmin , R}, PlotStyle -> {{ Thickness[Large], Purple}, {Thickness[Large], Purple}}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["r [km]", Black , FontSize -> 20], Style["ϕ [radians]", Black , FontSize -> 20]}, PlotRange -> {{rlim , R}, Automatic }];
+
+plot6 = ParametricPlot [{{x[k], y[k]}, {xout[k], yout[k]}}, {k, rmin , R}, PlotStyle -> {{ Thickness[Large], Purple}, {Thickness[Large], Purple}}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["x [km]", Black , FontSize -> 20], Style["y [km]", Black , FontSize -> 15]}, PlotPoints -> acc];
+
+plot4 = Graphics [{Black , Disk [{0, 0}, reh ]}];
+
+If[e^2 >= vmax , Show[plot2], Show[plot5 , line1 ]]
+If[e^2 >= vmax , Show[plot3 , plot4 , PlotRange -> All , AxesOrigin -> {0, 0}], Show[plot6 , plot4 , PlotRange -> All , AxesOrigin -> {0, 0}]]
