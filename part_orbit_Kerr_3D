@@ -1,0 +1,208 @@
+ClearAll[ithe , re , rergo ];
+
+M = 1; a = 0.5; e = 1.45; l = 5; L = 5; R = 10; the0 = N[Pi /2];
+phi0 = 0; Ni = 8000; flagreturn = 1;
+
+delta[r_] = r^2 - 2*M*r + a^2;
+peq[r_] = e*(r^2 + a^2) - l*a;
+phieq[phi_ , r_ , theta_] = -(a*e - l/Sin[theta ]^2) + a*peq[r]/ delta[r];
+req[r_] = (peq[r])^2 - delta[r]*(L + r^2 + (l - a*e)^2);
+theq[u_] = L - u*((1 - e^2)*a^2 + (l^2/(1 - u)));
+theqq[theta_] = L - (Cos[theta ])^2*((1 - e^2)*a^2 + (l/Sin[theta ])^2);
+ueq[u_] = 4*(L*u*(1 - u) - u^2*((1 - e^2)*(1 - u)*a^2 - l^2));
+
+reh = M + Sqrt[M^2 - a^2]
+rergo[theta_] = M + Sqrt[M^2 - a^2*( Cos[theta ])^2];
+
+ur1[r_ , theta_] = (delta[r]* Sqrt[req[r]])/((r^2 + a^2)* peq[r] - a*delta[r]*(a*e*(Sin[theta ])^2 - l));
+
+uphi1[r_ , theta_] = (r*( delta[r]*l/(Sin[theta ])^2 - l*a^2 + 2*M*a*e*r))/ (((r^2 + a^2)^2 - a^2* delta[r]*( Sin[theta ])^2)*e - 2*M*a*l*r);
+
+utheta1[r_ , theta_] = (r*delta[r]*Sqrt[theqq[theta ]])/((r^2 + a^2)* peq[r]- a*delta[r]*(a*e*(Sin[theta ])^2 - l));
+
+ksirphi = ArcTan[uphi1[R, the0]/ur1[R, the0 ]];
+ksirthe = ArcTan[utheta1[R, the0]/ur1[R, the0 ]];
+
+NSolve[req[r] == 0 && r > 0, r, Reals]
+rmin = r /. Last[NSolve[req[r] == 0 && r > 0, r, Reals ]];
+If[rmin <= reh , {rmin = reh + 0.0001; rlim = rmin; flagreturn = 0; }, {rmin = rmin + 0.0001; rlim = rmin - 0.5}];
+
+rmin
+rlim
+
+umax = u /. Last[NSolve[theq[u] == 0 && u >= 0, u, Reals ]];
+themin = ArcCos[Sqrt[umax]]
+themax = N[Pi] - ArcCos[Sqrt[umax]]
+themin = themin + 0.0000000000001;
+themax = themax - 0.0000000000001;
+
+Off[NIntegrate ::nlim];
+
+rvalues = Table[rmin + i*(R - rmin)/Ni , {i, 0, Ni}];
+rvaluesrev = Reverse[rvalues ];
+
+dlrint = Table[NIntegrate [1/ Sqrt[req[r]], {r, rvalues [[i]], rvalues [[i + 1]]}] , {i, 1, Length[rvalues] - 1}];
+dlrintrev = Reverse[dlrint ];
+dlr = Table[Sum[dlrintrev [[i]], {i, 1, imax}], {imax , 1, Length[rvalues] - 1}];
+dlrvalues = Join [{0}, dlr];
+
+il = -a*e*dlrintrev;
+ir = Reverse[Table[NIntegrate[a*peq[r]/( delta[r]*Sqrt[Abs[req[r]]]), {r, rvalues [[i]], rvalues [[i + 1]]}] , {i, 1, Length[rvalues] - 1}]];
+
+If[flagreturn == 1, rvaluesrev = Join[rvaluesrev , rvalues [[2 ;; All ]]];
+  For[i = 1, i <= Length[rvalues] - 1, i++, lrval = Last[dlrvalues] + dlrint [[i]]; dlrvalues = Join[dlrvalues , {lrval }]; ];
+  il = Join[il , Reverse[il]];
+  ir = Join[ir , Reverse[ir]]; ];
+
+lrmax = Last[dlrvalues ];
+
+graph1 = ListPlot[Transpose [{ dlrvalues , rvaluesrev }], PlotRange -> Full , PlotLabel -> "Trajectory of a particle near a Kerr Black Hole", PlotStyle -> {Dark Orange}, AxesLabel -> {"", "Radial Distance r"}]
+
+thevalues1 = Table[the0 + i*( themax - the0)/Ni , {i, 0, Ni}];
+thevalues2 = Table[the0 + i (themin - the0)/Ni , {i, 0, Ni}];
+thevalues2 = thevalues2 [[2 ;; All ]];
+
+dltheint = Table[NIntegrate [1/ Sqrt[theqq[theta]], {theta , thevalues1 [[i]], thevalues1 [[i + 1]]}, AccuracyGoal -> Infinity], {i, 1, Length[thevalues1] - 1}];
+
+dltheintrev = Reverse[dltheint ];
+dlthe1 = Table[Sum[dltheint [[i]], {i, 1, imax}], {imax , 1, Length[thevalues1] - 1}];
+dlthe = Join [{0}, dlthe1 ];
+Print[HEEYY ];
+ltheper = Last[dlthe]
+
+thevalues = thevalues1;
+lthevalues = dlthe;
+
+nlim = Length[lthevalues ];
+flag = 0;
+nmax = 0;
+
+While[ flag == 0,
+
+  If[lrmax < Last[lthevalues] && flag == 0,
+  For[n = 1, n <= nlim && nmax == 0, n++,
+  If[lrmax <= lthevalues [[n]], nmax = n]];
+  lthevalues = lthevalues [[1 ;; nmax ]];
+  thevalues = thevalues [[1 ;; nmax ]];
+  Print[nmax];
+  Print[Hey1];
+  flag = 1;
+  Break; ];
+
+If[flag == 0,
+  For[i = 1, i <= Length[thevalues1] - 1, i++,
+  ltheval = Last[lthevalues] + dltheintrev [[i]];
+  lthevalues = Join[lthevalues , {ltheval }]; ];
+  thevalues = Join[thevalues , Reverse[thevalues [[1 ;; -2]]]];
+  nlim = Length[lthevalues ]];
+
+If[lrmax < Last[lthevalues] && flag == 0,
+  For[n = 1, n <= nlim && nmax == 0, n++,
+  If[lrmax <= lthevalues [[n]], nmax = n]];
+  lthevalues = lthevalues [[1 ;; nmax ]];
+  thevalues = thevalues [[1 ;; nmax ]];
+  Print[nmax];
+  Print[Hey2];
+  flag = 1;
+  Break; ];
+
+lthevalues2 = dlthe1 + Last[lthevalues ];
+
+If[flag == 0,
+  lthevalues = Join[lthevalues , lthevalues2 ];
+  thevalues = Join[thevalues , thevalues2 ];
+  nlim = Length[lthevalues ]];
+
+If[lrmax < Last[lthevalues] && flag == 0,
+  For[n = 1, n <= nlim && nmax == 0, n++,
+  If[lrmax <= lthevalues [[n]], nmax = n]];
+  lthevalues = lthevalues [[1 ;; nmax ]];
+  thevalues = thevalues [[1 ;; nmax ]];
+  Print[nmax];
+  Print[Hey3];
+  flag = 1;
+  Break; ];
+  
+If[flag == 0,
+  For[i = 1, i <= Length[thevalues2] - 1, i++,
+  ltheval = Last[lthevalues] + dltheintrev [[i]];
+  lthevalues = Join[lthevalues , {ltheval }]; ];
+  thevalues = Join[thevalues , Reverse[thevalues2 [[1 ;; -2]]]];
+  nlim = Length[lthevalues ]];
+
+If[lrmax < Last[lthevalues] && flag == 0,
+  For[n = 1, n <= nlim && nmax == 0, n++,
+  If[lrmax <= lthevalues [[n]], nmax = n]];
+  lthevalues = lthevalues [[1 ;; nmax ]];
+  thevalues = thevalues [[1 ;; nmax ]];
+  Print[nmax];
+  Print[Hey4];
+  flag = 1;
+  Break; ];
+
+If[flag == 0,
+  ltheval = Last[lthevalues] + Last[dltheintrev ];
+  lthevalues = Join[lthevalues , {ltheval }];
+  For[i = 1, i <= Length[thevalues1] - 1, i++,
+  ltheval = Last[lthevalues] + dltheint [[i]];
+  lthevalues = Join[lthevalues , {ltheval }]; ];
+  thevalues = Join[thevalues , thevalues1 ];
+  nlim = Length[lthevalues ]];
+  ];
+
+graph2 = ListPlot[Transpose [{ lthevalues , thevalues }], PlotRange -> Full , PlotLabel -> "Trajectory of a particle near a Kerr Black Hole", PlotStyle -> {Cyan},AxesLabel -> {"", "Degree "}];
+
+datathe = Transpose [{ lthevalues , thevalues }];
+
+fthe = Interpolation[datathe ];
+Show[ListPlot[datathe], Plot[fthe[x], {x, Min@datathe [[;; , 1]], Max@datathe [[;; , 1]]}]]
+
+fthevalues = Table[fthe[dlrvalues [[i]]], {i, 1, Length[rvaluesrev ]}];
+
+ithe = Table[NIntegrate[l/(Sqrt[Abs[theqq[theta ]]]*( Sin[theta ])^2) , {theta , fthevalues [[i]], fthevalues [[i + 1]]}] , {i, 1, 2}];
+
+i = 3;
+While[i <= Length[fthevalues] - 1,
+  ithepos = NIntegrate[l/(Sqrt[Abs[theqq[theta ]]]*( Sin[theta ])^2) ,
+  {theta , fthevalues [[i]], fthevalues [[i + 1]]}];
+  itheneg = NIntegrate[-l/(Sqrt[Abs[theqq[theta ]]]*( Sin[theta ])^2) ,
+  {theta , fthevalues [[i]], fthevalues [[i + 1]]}];
+  If[fthevalues [[i + 1]] > fthevalues [[i]],
+  ithe = Join[ithe , {ithepos}], ithe = Join[ithe , {itheneg }] ];
+  i = i + 1; ];
+
+graph11 = ListPlot[Transpose [{ fthevalues , dlrvalues }], PlotRange -> Full , PlotLabel -> "Trajectory of a particle near a Kerr Black Hole", PlotStyle -> {Purple}, AxesLabel -> {"Degree ", ""}];
+
+graph3 = ListPlot[Transpose [{ fthevalues , rvaluesrev }], Joined -> True , PlotRange -> Full , AxesLabel -> {Style["[rad]", Black , FontSize -> 20], Style["r[km]", Black , FontSize -> 20]}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], PlotStyle -> {Thickness[Large], Purple }]
+
+dphi = il + ithe + ir;
+phivalues = Table[Sum[dphi[[i]], {i, 1, imax}], {imax , 1, Length[dphi ]}];
+phivalues = Join [{0}, phivalues ];
+
+line1 = Graphics [{Black , Dashed , Line [{{rmin , 0}, {rmin , 50}}]}];
+
+graph4 = ListPlot[Transpose [{ dlrvalues , phivalues }], PlotRange -> All , PlotLabel -> "Trajectory of a particle near a Kerr Black Hole", PlotStyle -> {Pink}, AxesLabel -> {"", "Degree ϕ"}]
+
+graph8 = ListPlot[Transpose [{ rvaluesrev , phivalues }], Joined -> True , AxesLabel -> {Style["r[km]", Black , FontSize -> 20], Style["ϕ[rad]", Black , FontSize -> 20] }, TicksStyle -> Directive[Black , FontSize -> 15], AxesOrigin -> {rlim , 0}, PlotRange -> {{rlim , R}, Full}, LabelStyle -> Directive[Black , FontSize -> 20], PlotStyle -> {Thickness[Large], Purple }];
+
+finalphi = Show[graph8 , line1]
+
+xvalues = Table[Sqrt[rvaluesrev [[i]]^2 + a^2]* Sin[fthevalues [[i]] + ksirthe ]*Cos[phivalues [[i]] + ksirphi - ArcTan[a/rvaluesrev [[i]]]], {i, 1, Length[rvaluesrev] - 1}];
+yvalues = Table[Sqrt[rvaluesrev [[i]]^2 + a^2]* Sin[fthevalues [[i]] + ksirthe ]*Sin[phivalues [[i]] + ksirphi - ArcTan[a/rvaluesrev [[i]]]], {i, 1, Length[rvaluesrev] - 1}];
+zvalues = Table[rvaluesrev [[i]]* Cos[fthevalues [[i]] + ksirthe], {i, 1, Length[rvaluesrev] - 1}];
+
+dataxyz = Table [{ xvalues [[i]], yvalues [[i]], zvalues [[i]]},
+{i, 1, Length[rvaluesrev] - 1}];
+
+graph5 = ListPointPlot3D[dataxyz, PlotRange -> {{-10, 10}, {-10, 10}, {-10, 10}}, AxesLabel -> {Style["x[km]", Black , FontSize -> 20], Style["y[km]", Black , FontSize -> 20], Style["z[km]", Black , FontSize -> 20] }, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], PlotStyle -> {Thickness[Large], Purple}, BoxRatios -> {1, 1, 1}];
+
+xcirc[rr_ , phi_ , theta_] = Sqrt[rr^2 + a^2]* Sin[theta ]*Cos[phi - ArcTan[a/rr]];
+ycirc[rr_ , phi_ , theta_] = Sqrt[rr^2 + a^2]* Sin[theta ]*Sin[phi - ArcTan[a/rr]];
+zcirc[rr_ , phi_ , theta_] = rr*Cos[theta ];
+
+graph6 = ParametricPlot3D [{ xcirc[reh , phi , theta], ycirc[reh , phi , theta], zcirc[reh , phi , theta]}, {phi , 0, 2*Pi}, {theta , 0, Pi}, PlotStyle -> {Black}, PlotRange -> {{-2.5, 2.5}, {-2.5, 2.5}}];
+
+graph7 = ParametricPlot3D [{ xcirc[rergo[theta], phi , theta], ycirc[rergo[theta], phi , theta], zcirc[rergo[theta], phi , theta]}, {phi , 0, 2*Pi}, {theta , 0, Pi}, PlotStyle -> {ColorData["Legacy"]["RoseMadder"], Opacity [0.25]} , PlotRange -> {{-2.5, 2.5}, {-2.5, 2.5}}];
+
+Show[graph6 , graph7]
+Show[graph5 , graph6 , graph7 , Graphics3D@Line@dataxyz]
