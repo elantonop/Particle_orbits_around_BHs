@@ -1,0 +1,111 @@
+ClearAll[M, a, aa , l, e, R, reh , rergo , maxvplus , rmaxvplus , acc , rminpos , rminneg ];
+
+M = 1; l = 10; e = 1.65; R = 10; acc = 5000;
+
+delta[r_ , a_] = r^2 - 2*M*r + a^2;
+rosquared[r_] = r^2;
+omega[r_ , a_] = (2*M*a*r)/((r^2 + a^2)^2 - delta[r, a]*a^2);
+gttup[r_ , a_] = -((r^2 + a^2)^2 - delta[r, a]*a^2)/( rosquared[r]* delta[r, a]);
+gtphiup[r_ , a_] = -(2*M*a*r)/( rosquared[r]* delta[r, a]);
+gphiphiup[r_ , a_] = (delta[r, a] - a^2)/( rosquared[r]* delta[r, a]);
+grrup[r_ , a_] = delta[r, a]/ rosquared[r];
+
+reh[a_] = M + Sqrt[M^2 - a^2];
+rergo = 2*M;
+
+vplus[r_ , a_] = l*omega[r, a] + Abs[l]*Sqrt [(( omega[r, a])^2) - (( gphiphiup[r,a])/ gttup[r, a]) - (1/(l^2* gttup[r, a]))];
+vminus[r_ , a_] = l*omega[r, a] - Abs[l]*Sqrt [(( omega[r, a])^2) - (( gphiphiup[r, a])/ gttup[r, a]) - (1/(l^2* gttup[r, a]))];
+
+dvplus[r_ , a_] = D[vplus[r, a], r];
+dvminus[r_ , a_] = D[vminus[r, a], r];
+
+aa = 0.8;
+
+maxvpluspos[a_] := First[FindMaximum[vplus[r, a], {r, reh[aa] + 0.1}]];
+rmaxvpluspos[a_] := r /. Last[FindMaximum[vplus[r, a], {r, reh[aa] + 0.1}]];
+maxvplusneg[a_] := First[FindMaximum[vplus[r, a], {r, reh[aa] + 0.1}]];
+rmaxvplusneg[a_] := r /. Last[FindMaximum[vplus[r, a], {r, reh[aa] + 0.1}]];
+minvplus[a_] := First[FindMinimum[vplus[r, a], {r, R}]];
+rminvplus[a_] := r /. Last[FindMinimum[vplus[r, a], {r, R}]];
+minvminus[a_] := First[FindMinimum[vminus[r, a], {r, R}]];
+rminvminus[a_] := r /. Last[FindMinimum[vminus[r, a], {r, R}]];
+
+intfun[r_ , a_] = (l*r^2 + 2*M*r*(a*e - l))/((r^2 - 2*M*r + a^2)*Sqrt[(r^4 + a^2*r^2 + 2*M*a^2*r)*(e - vplus[r, a])*(e - vminus[r, a])]);
+
+introot[r_ , a_] = (r^4 + a^2*r^2 + 2*M*a^2*r)*(e - vplus[r, a])*(e - vminus[r, a]);
+
+ur[r_ , a_] = (delta[r, a]*Sqrt[(e - vplus[r, a])*(e - vminus[r, a])*(r^4 + a^2*r^2 +2*M*a^2*r)])/(e*r^4 + a^2*r^2*e + 2*M*a*(a*e - l)*r);
+uphi[r_ , a_] = (r*(l*r + 2*M*(a*e - l)))/(e*r^3 + a^2*e*r + 2*M*a*(a*e - l));
+
+ksi[r_ , a_] = ArcTan[uphi[r, a]/ur[r, a]];
+
+phi0 = ksi[R_ , a_];
+phi[k_ , a_] = phi0 + NIntegrate[intfun[r, a], {r, k, R}, Method -> "OscillatorySelection", MaxRecursion -> 100];
+
+phioutpos[k_ , a_] = -phi[k, a] + 2*phi[rminpos , a];
+phioutneg[k_ , a_] = -phi[k, a] + 2*phi[rminneg , a];
+
+Off[NIntegrate ::nlim];
+
+x[k_ , a_] = Sqrt[k^2 + a^2]* Cos[phi[k, a] - ArcTan[a/k]];
+y[k_ , a_] = Sqrt[k^2 + a^2]* Sin[phi[k, a] - ArcTan[a/k]];
+xoutpos[k_ , a_] = Sqrt[k^2 + a^2]* Cos[phioutpos[k, a] - ArcTan[a/k]];
+youtpos[k_ , a_] = Sqrt[k^2 + a^2]* Sin[phioutpos[k, a] - ArcTan[a/k]];
+xoutneg[k_ , a_] = Sqrt[k^2 + a^2]* Cos[phioutneg[k, a] - ArcTan[a/k]];
+youtneg[k_ , a_] = Sqrt[k^2 + a^2]* Sin[phioutneg[k, a] - ArcTan[a/k]];
+
+xcirc[k_ , theta_ , a_] = Sqrt[k^2 + a^2]* Cos[theta - ArcTan[a/k]];
+ycirc[k_ , theta_ , a_] = Sqrt[k^2 + a^2]* Sin[theta - ArcTan[a/k]];
+
+a = aa;
+
+Which[e >= maxvpluspos[a], rminpos = reh[a] + 0.01; rlimpos = rminpos , e <= maxvpluspos[a] && e >= minvplus[a], rminpos = r /. Last[NSolve[vplus[r, a] == e && r > 0, r, Reals ]]; rlimpos = rminpos - 1, e <= minvplus[a], Print[Forbidden : e <= Vplus[r]]];
+
+Which[e >= maxvplusneg[-a], rminneg = reh[-a] + 0.01; rlimneg = rminneg , e <= maxvplusneg[-a] && e >= minvplus[-a], rminneg = r /. Last[NSolve[vplus[r, -a] == e && r > 0, r, Reals ]]; rlimneg = rminneg - 1, e <= minvplus[-a], Print[Forbidden : e <= Vplus[r]]];
+
+reh[a]
+{maxvpluspos[a], maxvplusneg[-a]}
+{rminpos , rminneg}
+
+graph3 = Plot[{ vplus[r, a], vplus[r, -a]}, {r, 0, R}, PlotLabel -> "Effective Potentials for a Kerr Black Hole", PlotStyle -> {Purple , Orange}, AxesLabel -> {"Radial Distance r", "V+(r)"}, PlotLabels -> {"aL >0", "aL <0"}, PlotRange -> {Automatic , {0, maxvpluspos[a] + 0.5}}];
+
+graph5 = Plot[phi[k, a], {k, rminpos , R}, PlotStyle -> {Thickness[Large], Purple}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["r [km]", Black , FontSize -> 20], Style["ϕ [radians]", Black , FontSize -> 20]}, PlotRange -> {{rlimpos , R}, Full }];
+
+graph12 = Plot[phi[v, -a], {v, rminneg , R}, PlotStyle -> {Thickness[Large], Purple}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["r [km]", Black , FontSize -> 20], Style["ϕ [radians]", Black , FontSize -> 20]}, PlotRange -> {{rlimneg , R}, Full }];
+
+graph10 = ParametricPlot [{x[k, a], y[k, a]}, {k, rminpos , R}, AxesOrigin -> {0, 0}, PlotStyle -> {Thickness[Large], Purple}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["x [km]", Black , FontSize -> 20], Style["y [km]", Black , FontSize -> 20]}, PlotPoints -> acc];
+
+graph11 = ParametricPlot [{x[v, -a], y[v, -a]}, {v, rminneg , R}, AxesOrigin -> {0, 0}, PlotStyle -> {Thickness[Large], Purple}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["x [km]", Black , FontSize -> 20], Style["y [km]", Black , FontSize -> 20]}, PlotPoints -> acc];
+
+graph9 = Plot[{phi[k, a], phioutpos[k, a]}, {k, rminpos , R}, PlotStyle -> {{ Thickness[Large], Purple}, {Thickness[Large], Purple}}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["r [km]", Black , FontSize -> 20], Style["ϕ [radians]", Black , FontSize -> 20]}, AxesOrigin -> {rlimpos , 0}, PlotRange -> {{rlimpos , R}, Full }];
+
+graph13 = Plot[{phi[v, -a], phioutneg[v, -a]}, {v, rminneg , R}, PlotStyle -> {{ Thickness[Large], Purple}, {Thickness[Large], Purple}}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["r [km]", Black , FontSize -> 20], Style["ϕ [radians]", Black , FontSize -> 20]}, PlotRange -> {{rlimneg , R}, Full }];
+
+graph6 = ParametricPlot [{{x[k, a], y[k, a]}, {xoutpos[k, a], youtpos[k, a]}}, {k, rminpos , R}, PlotStyle -> {{ Thickness[Large], Purple}, {Thickness[Large], Purple}}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["x [km]", Black , FontSize -> 20], Style["y [km]", Black , FontSize -> 15]}, PlotPoints -> acc];
+
+graph14 = ParametricPlot [{{x[v, -a], y[v, -a]}, {xoutneg[v, -a], youtneg[v, -a]}}, {v, rminneg , R}, PlotStyle -> {{ Thickness[Large], Purple}, {Thickness[Large], Purple}}, TicksStyle -> Directive[Black , FontSize -> 15], LabelStyle -> Directive[Black , FontSize -> 20], AxesLabel -> {Style["x [km]", Black , FontSize -> 20], Style["y [km]", Black , FontSize -> 15]}, PlotPoints -> acc];
+
+graph7 = ParametricPlot [{ xcirc[reh[a], theta , a], ycirc[reh[a], theta , a]}, {theta , 0, 2*Pi}, PlotStyle -> Opacity [1]] /. Line[l_List] :> {{Black , Polygon[l]}};
+
+graph8 = ParametricPlot [{ xcirc[rergo , theta , a], ycirc[rergo , theta , a]}, {theta , 0, 2*Pi}, PlotStyle -> {Darker[Red], Dashed , Thick , Opacity [1]}];
+
+linepos = Graphics [{Black , Dashed , Line [{{ rminpos , 0}, {rminpos , 50}}]}];
+lineneg = Graphics [{Black , Dashed , Line [{{ rminneg , phi[R, -a]}, {rminneg , 50}}]}];
+
+Which[e >= maxvpluspos[a], Show[graph5 , graph12 , PlotRange -> All], e <= maxvpluspos[a] && e >= maxvplusneg[-a], Show[graph9 , graph12 , PlotRange -> All], e <= maxvplusneg[-a], Show[graph9 , graph13 , PlotRange -> All ]];
+
+Which[e >= maxvpluspos[a], Show[graph10 , graph11 , graph7 , graph8 , PlotRange -> All], e <= maxvpluspos[a] && e >= maxvplusneg[-a], Show[graph6 , graph11 , graph7 , graph8 , PlotRange -> All], e <= maxvplusneg[-a], Show[graph6 , graph14 , graph7 , graph8 , PlotRange -> All ]];
+
+final1 = Show[graph5 ];
+final2 = Show[graph12 ];
+final3 = Show[graph9 , linepos ];
+final4 = Show[graph13 , lineneg ];
+final5 = Show[graph10 , graph7 , graph8 , PlotRange -> All];
+final6 = Show[graph11 , graph7 , graph8 , PlotRange -> All];
+final7 = Show[graph6 , graph7 , graph8 , PlotRange -> All];
+final8 = Show[graph14 , graph7 , graph8 , PlotRange -> All];
+
+Which[e >= maxvpluspos[a], final1 , e <= maxvpluspos[a], final3]
+Which[e >= maxvpluspos[a], final5 , e <= maxvpluspos[a], final7]
+Which[e >= maxvplusneg[-a], final2 , e <= maxvpluspos[a], final4]
+Which[e >= maxvplusneg[-a], final6 , e <= maxvpluspos[a], final8]
